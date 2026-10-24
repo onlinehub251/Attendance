@@ -383,23 +383,24 @@ async function saveRev(id){const r=RVD[id],d=re_d.value,ti=re_i.value,to=re_o.va
 /* ---- Employees & projects (admin) ---- */
 function empF(){const q=$('eq').value.toLowerCase().trim();let n=0,t=0;document.querySelectorAll('tr[data-k]').forEach(r=>{t++;const v=!q||r.dataset.k.includes(q);r.style.display=v?'':'none';if(v)n++});$('eqn').textContent=q?n+' of '+t+' employees shown':''}
 function vEmp(){V(`<div class="card"><b>Add / update employee</b><div class="row"><div><label>Staff ID</label><input id="e1"></div><div><label>Name</label><input id="e2"></div><div><label>Default project</label><input id="e3"></div><div><label>Code</label><input id="e4"></div><div><label>Mobile (WhatsApp)</label><input id="e5" type="tel" inputmode="tel" placeholder="e.g. 971501234567"></div></div><p class="msg" id="em"></p><button class="p" onclick="saveEmp()">Save employee</button></div>
- <div class="card"><b>📥 Import employees from Excel / CSV</b><p class="pn">Columns: Staff ID, Name, Project, Code, Mobile. Existing staff IDs are updated; blank cells keep the current value.</p><input type="file" id="imf" accept=".xlsx,.xls,.csv"><br><br><button class="p" onclick="impEmp()">Import</button> <button class="s" onclick="impTpl()">Download template</button><p class="msg" id="im"></p></div>
+ <div class="card"><b>📥 Import employees from Excel / CSV</b><p class="pn">Columns: Staff ID, Name, Mobile. Existing staff IDs are updated; a blank Mobile keeps the current one. (Projects are imported separately below.)</p><input type="file" id="imf" accept=".xlsx,.xls,.csv"><br><br><button class="p" onclick="impEmp()">Import</button> <button class="s" onclick="impTpl()">Download template</button><p class="msg" id="im"></p></div>
  <div class="card"><input id="eq" placeholder="🔍 Search Staff ID or Name…" oninput="empF()" style="margin-bottom:6px"><p class="pn" id="eqn"></p><div class="t"><table><tr><th>Staff ID</th><th>Name</th><th>Project</th><th>Code</th><th>Mobile</th><th>Active</th><th></th></tr>${emps.map((e,i)=>`<tr data-k="${esc((e.staff_id+' '+e.name).toLowerCase())}"><td>${esc(e.staff_id)}</td><td>${esc(e.name)}</td><td>${esc(e.project)}</td><td>${esc(e.code)}</td><td>${esc(e.mobile||'')}</td><td>${e.active?'Yes':'No'}</td><td><button class="s" onclick="fillEmp(${i})">Edit</button> <button class="s" onclick="togEmp(${i})">${e.active?'Deactivate':'Activate'}</button> <button class="s d" id="de${i}" onclick="delEmp(${i})">Delete</button></td></tr>`).join('')}</table></div></div>
+ <div class="card"><b>📥 Import projects / sites from Excel / CSV</b><p class="pn">Columns: Name, Code. Existing project names are updated; a blank Code keeps the current one.</p><input type="file" id="pimf" accept=".xlsx,.xls,.csv"><br><br><button class="p" onclick="impProj()">Import projects</button> <button class="s" onclick="projTpl()">Download template</button><p class="msg" id="pim"></p></div>
  <div class="card"><b>Projects / sites</b><div class="row"><div><label>Name</label><input id="p1"></div><div><label>Code</label><input id="p2"></div></div><br><button class="p" onclick="saveProj()">Save project</button>
  <div class="t"><table>${projs.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.code)}</td><td><button class="s d" id="pp${p.id}" onclick="delProj(${p.id})">Remove</button></td></tr>`).join('')}</table></div></div>`)}
 const reload=async()=>{const[e,j]=await Promise.all([sb.from('employees').select('*').order('staff_id'),sb.from('projects').select('*').order('name')]);emps=e.data||[];projs=j.data||[];show(tab)};
 function fillEmp(i){const e=emps[i];e1.value=e.staff_id;e2.value=e.name;e3.value=e.project||'';e4.value=e.code||'';e5.value=e.mobile||''}
 async function saveEmp(){if(!e1.value||!e2.value)return em.textContent='Staff ID and name are required.';
  const{error}=await sb.from('employees').upsert({staff_id:e1.value.trim(),name:e2.value.trim(),project:e3.value,code:e4.value,mobile:e5.value.trim()});if(error)return em.textContent=error.message+(/mobile/.test(error.message)?' — add the mobile column in Supabase first (see the SQL instructions).':'');reload()}
-function impTpl(){const ws=XLSX.utils.aoa_to_sheet([['Staff ID','Name','Project','Code','Mobile'],['FSS-2300','Sample Name','Site A – Tower 1','A01','0501234567']]),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Employees');XLSX.writeFile(wb,'Employees_Template.xlsx')}
+function impTpl(){const ws=XLSX.utils.aoa_to_sheet([['Staff ID','Name','Mobile'],['FSS-2300','Sample Name','0501234567']]);ws['!cols']=[{wch:14},{wch:30},{wch:18}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Employees');XLSX.writeFile(wb,'Employees_Template.xlsx')}
 async function impEmp(){const f=imf.files[0];im.className='msg';if(!f)return im.textContent='Choose a file first.';
  try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
   const nk=o=>{const m={};Object.keys(o).forEach(c=>m[c.toLowerCase().replace(/[^a-z0-9]/g,'')]=o[c]);return m},
   pk=(m,a)=>{for(const x of a)if(m[x]!==undefined&&String(m[x]).trim()!=='')return String(m[x]).trim();return''};
   const out=[],bad=[];rows.forEach((o,i)=>{const m=nk(o),id=pk(m,['staffid','id','staffno','staffnumber','empid','employeeid']),name=pk(m,['name','employeename','employee','fullname']);
    if(!id||!name){bad.push(i+2);return}
-   const r={staff_id:id,name},pr=pk(m,['project','defaultproject','site']),cd=pk(m,['code','projectcode']),mb=pk(m,['mobile','mobilenumber','mobileno','phone','whatsapp','contact']);
-   if(pr)r.project=pr;if(cd)r.code=cd;if(mb)r.mobile=mb;out.push(r)});
+   const r={staff_id:id,name},mb=pk(m,['mobile','mobilenumber','mobileno','phone','whatsapp','contact']);
+   if(mb)r.mobile=mb;out.push(r)});
   if(!out.length)return im.textContent='No valid rows found. Each row needs a Staff ID and a Name.';
   const{error}=await sb.from('employees').upsert(out,{onConflict:'staff_id',defaultToNull:false});
   if(error)return im.textContent=error.message+(/mobile/.test(error.message)?' — add the mobile column in Supabase first.':'');
@@ -407,6 +408,18 @@ async function impEmp(){const f=imf.files[0];im.className='msg';if(!f)return im.
  catch(e){im.textContent='Could not read the file: '+e.message}}
 async function togEmp(i){await sb.from('employees').update({active:!emps[i].active}).eq('staff_id',emps[i].staff_id);reload()}
 function delEmp(i){const e=emps[i],b=$('de'+i);if(sure('e'+i,async()=>{const{error}=await sb.from('employees').delete().eq('staff_id',e.staff_id);if(error)return alert(error.message);reload()}))b.textContent='Sure? Click again'}
+function projTpl(){const ws=XLSX.utils.aoa_to_sheet([['Name','Code'],['Abudhabi Airbase','SS25018M'],['Alain Diwan','SS26150']]);ws['!cols']=[{wch:36},{wch:16}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Projects');XLSX.writeFile(wb,'Projects_Template.xlsx')}
+async function impProj(){const f=$('pimf').files[0],m=$('pim');m.className='msg';if(!f)return m.textContent='Choose a file first.';
+ try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+  const nk=o=>{const x={};Object.keys(o).forEach(c=>x[c.toLowerCase().replace(/[^a-z0-9]/g,'')]=o[c]);return x},
+  pk=(x,a)=>{for(const k of a)if(x[k]!==undefined&&String(x[k]).trim()!=='')return String(x[k]).trim();return''};
+  const seen={},bad=[];rows.forEach((o,i)=>{const x=nk(o),name=pk(x,['name','project','projectname','site','sitename','projectsite']),code=pk(x,['code','projectcode','sitecode','jobcode']);
+   if(!name){bad.push(i+2);return}const r=seen[name]||{name};if(code)r.code=code;seen[name]=r});
+  const out=Object.values(seen);if(!out.length)return m.textContent='No valid rows found. Each row needs a project Name.';
+  const{error}=await sb.from('projects').upsert(out,{onConflict:'name',defaultToNull:false});
+  if(error)return m.textContent=error.message;
+  await reload();alert(out.length+' project(s) imported'+(bad.length?'\nSkipped rows (missing Name): '+bad.join(', '):''))}
+ catch(e){m.textContent='Could not read the file: '+e.message}}
 async function saveProj(){if(!p1.value)return;await sb.from('projects').upsert({name:p1.value.trim(),code:p2.value},{onConflict:'name'});reload()}
 function delProj(id){const b=$('pp'+id);if(sure('p'+id,async()=>{await sb.from('projects').delete().eq('id',id);reload()}))b.textContent='Sure? Click again'}
 
