@@ -1,6 +1,7 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#8a2be2">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Attendance">
 <title>Team Attendance</title>
 <style>
 :root{--bg:#fbf7ff;--card:#fff;--tx:#241a33;--mu:#6e6480;--bd:#e3d8f0;--g:linear-gradient(120deg,#ff4a6e,#ff8a1f 50%,#8a2be2);--ok:#168a4f;--bad:#c62828}
@@ -61,6 +62,15 @@ nav button{display:inline-flex;align-items:center;gap:6px}nav .ic{font-size:1rem
  .row{grid-template-columns:1fr 1fr}
  #login{margin:16px auto!important}
 }
+@media(max-width:720px){
+ table.cards,table.cards tbody{display:block}table.cards tr.hd{display:none}
+ table.cards tr{display:block;border:1px solid var(--bd);border-radius:14px;padding:6px 12px;margin:0 0 12px;background:var(--card)}
+ table.cards td{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;border:0;border-top:1px solid var(--bd);padding:8px 0;white-space:normal!important;min-width:0!important}
+ table.cards td:first-child{border-top:0;font-size:1.05rem;font-weight:700}
+ table.cards td::before{content:attr(data-label);flex:0 0 100%;font-size:.68rem;font-weight:700;color:var(--mu);text-transform:uppercase}
+ table.cards td input:not([type=checkbox]),table.cards td select{width:100%!important}
+ table.cards td.act button,table.cards td.act input{flex:1 1 40%}
+}
 </style></head><body>
 <div id="welcome"><div class="e">😊</div><h2 id="wn"></h2><p>Welcome back. Let's log your attendance.</p><button class="p" style="background:#fff;color:#8a2be2" onclick="go()">Start</button></div>
 <header><div><h1>🗓️ Team Attendance</h1><small>Created by Engg Khalid</small></div><div><span class="chip" id="wkchip"></span> <span class="chip hide" id="who"></span> <button class="s hide" id="hb" style="color:#fff;border-color:#fff8" onclick="help()">❓ Help</button> <button class="s hide" id="lo" style="color:#fff;border-color:#fff8" onclick="logout()">Log out</button></div></header>
@@ -103,7 +113,7 @@ async function boot(fresh){
  if(!p||p.blocked){await sb.auth.signOut();$('lm').textContent=p?'This login is blocked. Contact the admin.':'No profile for this login. Contact the admin.';return}
  me=p;if(fresh)sb.rpc('log_event',{p_action:'LOGIN'});
  const[e,j]=await Promise.all([sb.from('employees').select('*').order('staff_id'),sb.from('projects').select('*').order('name')]);
- emps=e.data||[];projs=j.data||[];await loadReasons();
+ emps=e.data||[];projs=j.data||[];await loadHol();await loadReasons();
  $('login').classList.add('hide');$('who').textContent=(p.display_name||p.username)+' · '+(isAdmin()?'Administrator':'User');$('who').classList.remove('hide');$('lo').classList.remove('hide');
  if(fresh){$('wn').textContent='Hi, '+(p.display_name||p.username)+'!';$('welcome').style.display='flex';setTimeout(go,1200)}else go()}
 function go(){$('welcome').style.display='none';$('app').classList.remove('hide');
@@ -113,7 +123,7 @@ function go(){$('welcome').style.display='none';$('app').classList.remove('hide'
  extTabs(t);if(!t.some(x=>x[0]===tab))tab='log';
  $('nav').innerHTML=t.map(x=>{const i=x[1].indexOf(' ');return`<button data-t="${x[0]}" class="${x[0]===tab?'on':''}" onclick="show('${x[0]}')"><span class="ic">${x[1].slice(0,i)}</span><span class="lb">${x[1].slice(i+1)}</span></button>`}).join('');show(tab)}
 async function logout(){sb.rpc('log_event',{p_action:'LOGOUT'}).then(()=>sb.auth.signOut()).then(()=>location.reload())}
-function show(t){tab=t;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({log:vLog,dash:vDash,rev:vRev,emp:vEmp,usr:vUsr,exp:vExp,aud:vAud2,home:vHome3,team:vTeam,set:vSet})[t]();const on=document.querySelector('#nav button.on');if(on&&on.scrollIntoView)on.scrollIntoView({inline:'center',block:'nearest'})}
+function show(t){tab=t;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));({log:vLog,dash:vDash,rev:vRev,emp:vEmp,usr:vUsr,exp:vExp,aud:vAud2,home:vHome3,team:vTeam,set:vSet,rmd:vRmd,mon:vMon})[t]();const on=document.querySelector('#nav button.on');if(on&&on.scrollIntoView)on.scrollIntoView({inline:'center',block:'nearest'})}
 const V=h=>$('view').innerHTML=h;
 const WA_ICON='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16.04 3C8.84 3 3 8.83 3 16.02c0 2.3.6 4.54 1.74 6.52L3 29l6.62-1.7a13 13 0 0 0 6.42 1.64h.01C23.23 28.94 29 23.2 29 16.02 29 8.83 23.23 3 16.04 3Zm0 23.7h-.01a10.7 10.7 0 0 1-5.45-1.49l-.39-.23-3.93 1.01 1.05-3.83-.25-.4a10.6 10.6 0 0 1-1.63-5.74c0-5.9 4.82-10.7 10.75-10.7 2.87 0 5.57 1.12 7.6 3.14a10.6 10.6 0 0 1 3.14 7.57c0 5.9-4.82 10.67-10.88 10.67Zm5.9-8c-.32-.16-1.9-.94-2.2-1.05-.3-.1-.51-.16-.73.17-.21.32-.84 1.05-1.03 1.27-.19.21-.38.24-.7.08-.32-.16-1.36-.5-2.59-1.6a9.7 9.7 0 0 1-1.8-2.23c-.19-.32-.02-.5.14-.66.15-.14.32-.38.48-.57.16-.19.21-.32.32-.54.1-.21.05-.4-.03-.56-.08-.16-.73-1.76-1-2.4-.26-.63-.53-.54-.73-.55h-.62c-.21 0-.56.08-.85.4-.3.32-1.12 1.09-1.12 2.66 0 1.57 1.15 3.09 1.3 3.3.16.21 2.25 3.43 5.45 4.81.76.33 1.36.52 1.82.67.76.24 1.46.2 2.01.12.61-.09 1.9-.78 2.17-1.53.27-.75.27-1.4.19-1.53-.08-.13-.3-.21-.62-.37Z"/></svg>';
 const DEF_CC='971'; // default country code used when a number is saved as 05xxxxxxxx
@@ -224,17 +234,17 @@ async function copyPrev(k){const ids=sel(),d=$('d').value;$('m').className='msg'
 async function delRow0(id){const b=$('x'+id);if(sure(id,async()=>{await sb.from('attendance').delete().eq('id',id);saved()})){b.textContent='Sure? Click again'}}
 
 /* ---- Mon-Fri completeness: pending until every working day up to today is logged (or covered by leave) ---- */
-const WD5=m=>[0,1,2,3,4].map(i=>add(m,i)),fmtD=d=>DN[(D(d).getUTCDay()+6)%7]+' '+d.slice(8)+'.'+d.slice(5,7);
+let HOL={};const WD5=m=>[0,1,2,3,4].map(i=>add(m,i)).filter(d=>!HOL[d]),fmtD=d=>DN[(D(d).getUTCDay()+6)%7]+' '+d.slice(8)+'.'+d.slice(5,7);
 const lvOn=(lvs,id,d)=>lvs.some(l=>l.staff_id===id&&l.start_date<=d&&l.end_date>=d);
 function mkPend(m,rows,lvs){const h={};rows.forEach(r=>{(h[r.staff_id]=h[r.staff_id]||new Set()).add(r.work_date)});const t=today();return id=>WD5(m).filter(d=>d<=t&&!(h[id]&&h[id].has(d))&&!lvOn(lvs,id,d))}
 const pdTxt=(f,id)=>f?f(id).map(fmtD).join(', '):'';
 /* ---- Weekly status (admin, or a user who has been given Weekly report access) ---- */
-const BASE_R=['Annual leave','Leave','Sick','Different team','Day off','Other'],LSR='att_reasons';
+const BASE_R=['Annual leave','Sick leave','Personal leave','Day off','Medical test','Visa processing','Official travelling','Different team','Other'],LSR='att_reasons';
 let CUST=new Set(JSON.parse(localStorage.getItem(LSR)||'[]')),dashDate=today(),DASH={m:'',miss:[],scope:[]};
 const saveLS=()=>localStorage.setItem(LSR,JSON.stringify([...CUST]));
 const hasR=v=>reasonList().some(x=>x.toLowerCase()===String(v).toLowerCase());
 const reasonList=()=>[...BASE_R,...[...CUST].filter(x=>!BASE_R.some(b=>b.toLowerCase()===x.toLowerCase())).sort((a,b)=>a.localeCompare(b))];
-const reasonOpts=cur=>'<option value="">Select…</option>'+reasonList().map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('')+'<option value="__new">➕ Add new reason…</option>';
+const reasonOpts=cur=>'<option value="">Select…</option>'+reasonList().concat(cur&&!reasonList().includes(cur)?[cur]:[]).map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('')+'<option value="__new">➕ Add new reason…</option>';
 async function loadReasons(){try{const{data}=await sb.from('reasons').select('name');(data||[]).forEach(r=>r.name&&CUST.add(r.name));saveLS()}catch(e){}}
 function reasonPick(s){if(s.value!=='__new')return;const v=(prompt('Type the new reason:')||'').trim();if(!v){s.value='';return}
  const ex=reasonList().find(x=>x.toLowerCase()===v.toLowerCase()),name=ex||v;
@@ -255,7 +265,7 @@ async function vDash(){const m=mon(dashDate),sc=scopeEmps(),ids=sc.map(e=>e.staf
  const sk=new Set(sq.error?[]:(sq.data||[]).map(r=>r.staff_id));
  const pdf=mkPend(m,a.data||[],lv),miss=sc.filter(e=>!sk.has(e.staff_id)&&pdf(e.staff_id).length),onLv=sc.filter(e=>!done.has(e.staff_id)&&!sk.has(e.staff_id)&&WD5(m).every(d=>lvOn(lv,e.staff_id,d)));DASH={m,miss,att:a.data||[],ab,scope:sc,rem,lv,skip:sk,pdf};
  V(`<div class="card"><div class="row"><div><label>Week containing</label><input type="date" value="${dashDate}" onchange="dashDate=this.value;vDash()"></div></div>
- <p><b>WK-${wkOf(m)}</b> (${m} to ${add(m,6)}) · Deadline: Sunday 9:00 PM</p>
+ <p><b>WK-${wkOf(m)}</b> (${m} to ${add(m,6)}) · Deadline: ${dlText()}</p>
  <p class="pn">👥 Following up <b>${sc.length-sk.size}</b> of ${sc.length} employees this week${sk.size?' · '+sk.size+' left out':''}. ${adm?'<button class="s" onclick="fuOpen()">Choose who to follow up</button>':''}${sq.error&&adm?' <span class="msg">(run the SQL script to enable this)</span>':''}</p><div id="fu"></div>
  <p class="${miss.length?'msg':'ok'}">${miss.length?`⚠️ ${miss.length} employee(s) have not submitted all 5 working days (Mon–Fri):`:'✅ Everyone has submitted Mon–Fri (or is on leave).'}</p>
  ${onLv.length?`<p class="ok">🌴 On leave all week (not counted as pending): ${onLv.map(e=>esc(e.name)+' (back after '+lv.filter(l=>l.staff_id===e.staff_id).map(l=>l.end_date).sort().pop()+')').join(', ')}</p>`:''}
@@ -289,7 +299,7 @@ async function saveLeave(){const id=lv_e.value,s=lv_s.value,d=lv_d.value,rs=lv_r
 function delLeave(id){const b=$('dl'+id);if(sure('l'+id,async()=>{const x=await sb.from('leaves').delete().eq('id',id).select(),w=wrote(x);if(w)return alert(w);vDash()}))b.textContent='Sure? Click again'}
 
 function repRows(){const s=selIds();return DASH.miss.filter(e=>s.includes(e.staff_id)).map((e,i)=>{const r=$('r_'+e.staff_id),n=$('n_'+e.staff_id),ab=DASH.ab[e.staff_id]||{};return[i+1,e.staff_id,e.name,r?r.value:(ab.reason||''),n?n.value:(ab.note||''),pdTxt(DASH.pdf,e.staff_id)]})}
-function repText(){const m=DASH.m;return '*Pending Attendance Report - WK-'+wkOf(m)+'*\n('+m+' to '+add(m,6)+')\nDeadline: Sunday 9:00 PM\n\n'+repRows().map(r=>r[0]+'. '+r[2]+' ('+r[1]+')'+(r[5]?' - pending: '+r[5]:'')+(r[3]&&r[3]!=='__new'?' - '+r[3]:'')).join('\n')+'\n\nPlease submit your attendance: '+location.origin+location.pathname}
+function repText(){const m=DASH.m;return '*Pending Attendance Report - WK-'+wkOf(m)+'*\n('+m+' to '+add(m,6)+')\nDeadline: '+dlText()+'\n\n'+repRows().map(r=>r[0]+'. '+r[2]+' ('+r[1]+')'+(r[5]?' - pending: '+r[5]:'')+(r[3]&&r[3]!=='__new'?' - '+r[3]:'')).join('\n')+'\n\nPlease submit your attendance: '+location.origin+location.pathname}
 function shareWA(){if(!selIds().length)return alert('Tick the employees you want to include first.');window.open('https://wa.me/?text='+encodeURIComponent(repText()),'_blank')}
 function waMsg(e){const m=DASH.m;return 'Hello '+e.name+',\n\nYour attendance is *pending* for the period '+m+' to '+add(m,6)+' (WK-'+wkOf(m)+').\nPending days: '+pdTxt(DASH.pdf,e.staff_id)+'.\nDeadline: '+dlText()+'.\n\nPlease submit it as soon as possible: '+location.origin+location.pathname+'\n\nThank you.'}
 const no=m=>{alert(m);return false};
@@ -326,14 +336,14 @@ function wkHead(){const m=DASH.m,N=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];r
 const wkTitle=mode=>(mode==='1'?'Weekly Attendance Status':mode==='2'?'Pending Attendance - Selected Employees':'Pending Attendance Report')+' - WK-'+wkOf(DASH.m),wkFile=mode=>(mode==='1'?'Weekly_Status_WK':'Pending_Attendance_WK')+wkOf(DASH.m);
 const wkNone=mode=>alert(mode==='2'?'Tick the employees you want to include first.':'Nothing to export.');
 function wkXls(){const mode=$('xs').value,m=DASH.m,rows=wkRows(mode);if(!rows.length)return wkNone(mode);
- const aoa=[[wkTitle(mode)],['Period: '+m+' to '+add(m,6)+'   Deadline: Sunday 9:00 PM'],['Created by Engg Khalid'],[],wkHead(),...rows];
+ const aoa=[[wkTitle(mode)],['Period: '+m+' to '+add(m,6)+'   Deadline: '+dlText()],['Created by Engg Khalid'],[],wkHead(),...rows];
  const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=[{wch:5},{wch:12},{wch:30},...Array(7).fill({wch:10}),{wch:10},{wch:11},{wch:28},{wch:16},{wch:30}];
  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:9}}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'WK'+wkOf(m));
  XLSX.writeFile(wb,wkFile(mode)+'.xlsx')}
 function wkPdf(){const mode=$('xs').value,m=DASH.m,rows=wkRows(mode);if(!rows.length)return wkNone(mode);
  const{jsPDF}=window.jspdf,d=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
  d.setFontSize(16);d.text(wkTitle(mode),14,15);d.setFontSize(10);
- d.text('Period: '+m+' to '+add(m,6)+'     Deadline: Sunday 9:00 PM',14,22);d.text('Created by Engg Khalid     Generated: '+new Date().toLocaleString(),14,28);
+ d.text('Period: '+m+' to '+add(m,6)+'     Deadline: '+dlText(),14,22);d.text('Created by Engg Khalid     Generated: '+new Date().toLocaleString(),14,28);
  d.autoTable({startY:33,head:[wkHead()],body:rows,theme:'grid',margin:{left:10,right:10},styles:{fontSize:8,cellPadding:2,valign:'middle',overflow:'linebreak'},
   headStyles:{fillColor:[138,43,226],halign:'center'},
   columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:20},2:{cellWidth:38},3:{cellWidth:13,halign:'center'},4:{cellWidth:13,halign:'center'},5:{cellWidth:13,halign:'center'},6:{cellWidth:13,halign:'center'},7:{cellWidth:13,halign:'center'},8:{cellWidth:13,halign:'center'},9:{cellWidth:13,halign:'center'},10:{cellWidth:15,halign:'center'},11:{cellWidth:20,halign:'center'},12:{cellWidth:30},13:{cellWidth:22},14:{cellWidth:'auto'}},
@@ -381,13 +391,81 @@ async function saveRev(id){const r=RVD[id],d=re_d.value,ti=re_i.value,to=re_o.va
  sb.rpc('log_event',{p_action:'EDIT ATTENDANCE',p_details:{id}});$('rve').innerHTML='';rvGo()}
 
 /* ---- Employees & projects (admin) ---- */
+/* ===== Free reminder screen (WhatsApp opens with the message ready - you press Send) ===== */
+let RMD={},TMS=[],MON=null;
+const sameDay=r=>r&&new Date(r.reminded_at).toDateString()===new Date().toDateString();
+const rmdMsg=x=>'Hello '+x.e.name+',\n\nYour attendance is *pending* for the period '+RMD.m+' to '+add(RMD.m,6)+' (WK-'+wkOf(RMD.m)+').\nPending days: '+x.pd.map(fmtD).join(', ')+'.\nDeadline: '+dlText()+'.\n\nPlease submit it as soon as possible: '+location.origin+location.pathname+'\n\nThank you.';
+async function loadTeams(){TMS=[];if(!isAdmin())return;try{const{data}=await sb.from('profiles').select('display_name,username,team_name,team_staff').eq('is_engineer',true);TMS=(data||[]).filter(p=>(p.team_staff||[]).length)}catch(e){}}
+const scopeIds=t=>isAdmin()?((t===''||t==null)?null:(TMS[+t]||{team_staff:[]}).team_staff):[...new Set([...(me.team_staff||[]),...(me.report_staff||[]),...(me.export_staff||[])])];
+const teamSel=(id,cur,fn)=>isAdmin()?`<div><label>Team</label><select id="${id}" onchange="${fn}"><option value="">All employees</option>${TMS.map((p,i)=>`<option value="${i}" ${String(cur)===String(i)?'selected':''}>${esc(p.team_name||p.display_name||p.username)} (${p.team_staff.length})</option>`).join('')}</select></div>`:`<div><label>Team</label><input value="${esc(me.team_name||'My team')}" disabled></div>`;
+const rmdVis=()=>{const q=(($('rq')||{}).value||'').toLowerCase().trim();return(RMD.list||[]).filter(x=>!q||(x.e.name+' '+x.e.staff_id).toLowerCase().includes(q))};
+async function vRmd(){V('<div class="card">Loading…</div>');if(isAdmin()&&!TMS.length)await loadTeams();const t=today(),m=RMD.w==='prev'?add(mon(t),-7):mon(t),ids=scopeIds(RMD.t),sc=emps.filter(e=>e.active&&(!ids||ids.includes(e.staff_id))),G=x=>x.then(r=>r.data||[],()=>[]);
+ const[a,lv,sk,rm]=await Promise.all([G(sb.from('attendance').select('*').gte('work_date',m).lte('work_date',add(m,6)).limit(10000)),G(sb.from('leaves').select('*').gte('end_date',m)),G(sb.from('week_skip').select('staff_id').eq('week_start',m)),G(sb.from('reminders').select('*').eq('week_start',m))]);
+ const skip=new Set(sk.map(x=>x.staff_id)),pdf=mkPend(m,a,lv),rem={};rm.forEach(r=>rem[r.staff_id]=r);
+ const list=sc.filter(e=>!skip.has(e.staff_id)&&pdf(e.staff_id).length).map(e=>({e,pd:pdf(e.staff_id)}));RMD.m=m;RMD.list=list;RMD.rem=rem;
+ const dy=new Date().getDay(),hint=(dy===4||dy===5)?'✅ Good time to send reminders (Thursday / Friday).':'💡 Best time to send reminders: Thursday and Friday.';
+ V(`<div class="card"><b>📣 Reminders - WK-${wkOf(m)} (${m} to ${add(m,6)})</b><p class="pn">${hint} It is free: each button opens WhatsApp with the message ready and you only press Send. Holidays and leave days are not counted.${isAdmin()?'':' You see only your selected team members.'}</p>
+ <div class="row">${teamSel('rtm',RMD.t,"RMD.t=this.value;vRmd()")}<div><label>Week</label><select onchange="RMD.w=this.value;vRmd()"><option value="cur" ${RMD.w!=='prev'?'selected':''}>This week</option><option value="prev" ${RMD.w==='prev'?'selected':''}>Last week</option></select></div><div><label>Search</label><input id="rq" placeholder="Name or staff ID" oninput="rmdFilter()"></div></div><br>
+ <button class="p" onclick="rmdNext()">▶ Send next reminder</button> <button class="s" onclick="rmdCopy()">📋 Copy all messages</button>
+ <p class="msg" id="rmm"></p><div class="t"><table><tr><th>#</th><th>Employee</th><th>Pending days</th><th>Last reminder</th><th></th></tr>${list.map((x,i)=>`<tr data-k="${esc((x.e.name+' '+x.e.staff_id).toLowerCase())}"><td>${i+1}</td><td>${esc(x.e.name)}<br><span class="pn">${esc(x.e.staff_id)}</span></td><td style="white-space:normal;min-width:140px">${esc(x.pd.map(fmtD).join(', '))}</td><td id="rmx_${esc(x.e.staff_id)}">${rem[x.e.staff_id]?esc(rmTxt(rem[x.e.staff_id])):'<span class="pn">not yet</span>'}</td><td>${waNum(x.e.mobile)?`<button class="s wa" onclick="rmdSend('${esc(x.e.staff_id)}')">${WA_ICON} Send</button>`:'<span class="pn">no mobile</span>'}</td></tr>`).join('')}</table></div></div>`);rmdFilter()}
+function rmdFilter(){const v=rmdVis(),ids=new Set(v.map(x=>x.e.staff_id));document.querySelectorAll('#view tr[data-k]').forEach((r,i)=>{r.style.display=ids.has(RMD.list[i].e.staff_id)?'':'none'});
+ const L=RMD.list||[];$('rmm').className='msg';$('rmm').textContent=L.length?v.length+' of '+L.length+' employee(s) with pending days · '+L.filter(x=>sameDay(RMD.rem[x.e.staff_id])).length+' already reminded today':'✅ Nobody has pending days.'}
+async function rmdSend(id){const x=RMD.list.find(z=>z.e.staff_id===id);if(!x)return;window.open('https://wa.me/'+waNum(x.e.mobile)+'?text='+encodeURIComponent(rmdMsg(x)),'_blank');
+ const p=RMD.rem[id],r={staff_id:id,week_start:RMD.m,reminded_at:new Date().toISOString(),reminded_by:me.display_name||me.username,cnt:(p?p.cnt||1:0)+1};RMD.rem[id]=r;const c=$('rmx_'+id);if(c)c.textContent=rmTxt(r);rmdFilter();
+ try{await sb.from('reminders').upsert(r,{onConflict:'staff_id,week_start'});sb.rpc('log_event',{p_action:'WHATSAPP REMINDER',p_details:{staff:id,week:RMD.m}})}catch(e){}}
+function rmdNext(){const x=rmdVis().find(z=>waNum(z.e.mobile)&&!sameDay(RMD.rem[z.e.staff_id]));if(!x)return alert('All reminders for today are done ✔');rmdSend(x.e.staff_id)}
+async function rmdCopy(){const v=rmdVis();if(!v.length)return alert('Nothing to copy.');const t=v.map(rmdMsg).join('\n\n----------\n\n');try{await navigator.clipboard.writeText(t);alert('Copied '+v.length+' message(s).')}catch(e){prompt('Copy this text:',t)}}
+/* ===== Month-end summary: team, month / year / date range, search ===== */
+async function vMon(){if(isAdmin()&&!TMS.length)await loadTeams();const M=MON||{},td=today();
+ V(`<div class="card"><b>📅 Month-end summary</b><p class="pn">Total hours and overtime per employee or project, for payroll or invoicing. Overtime = hours above the daily limit (${+AS.day_limit||10} h) on each day. "Over weekly limit" = hours above ${+AS.week_limit||48} h in a week (weeks cut by the period start or end are counted partly). Limits come from Settings.${isAdmin()?'':' You see only your selected team members.'}</p>
+ <div class="row">${teamSel('mtm',M.t,"monLoad()")}<div><label>Period</label><select id="mpt" onchange="monPt();monLoad()"><option value="month">Month</option><option value="year">Year</option><option value="range">Date range</option></select></div>
+ <div id="mpm"><label>Month</label><input type="month" id="mmn" value="${M.ym||td.slice(0,7)}" onchange="monLoad()"></div><div id="mpy" style="display:none"><label>Year</label><input type="number" id="myr" min="2020" max="2100" value="${M.yr||td.slice(0,4)}" onchange="monLoad()"></div>
+ <div id="mpf" style="display:none"><label>From</label><input type="date" id="mfr" value="${M.fr||td.slice(0,8)+'01'}" onchange="monLoad()"></div><div id="mpo" style="display:none"><label>To</label><input type="date" id="mto" value="${M.to||td}" onchange="monLoad()"></div>
+ <div><label>Group by</label><select id="mgb" onchange="monDraw()"><option value="e">Employee</option><option value="p">Project</option></select></div><div><label>Search</label><input id="mq" placeholder="Name, staff ID or project" oninput="monDraw()"></div></div>
+ <label class="ck"><input type="checkbox" id="mhz" onchange="monDraw()" checked> Hide employees with 0 hours</label><br><br>
+ <button class="p" onclick="monLoad()">Show summary</button> <button class="s" onclick="monXls()">⬇️ Excel</button><p class="msg" id="mmm"></p><div id="mres"></div></div>`);
+ if(M.pt){$('mpt').value=M.pt;monPt()}monLoad()}
+function monPt(){const v=$('mpt').value;$('mpm').style.display=v==='month'?'':'none';$('mpy').style.display=v==='year'?'':'none';$('mpf').style.display=$('mpo').style.display=v==='range'?'':'none'}
+async function monLoad(){const pt=$('mpt').value;let f,l,lab;
+ if(pt==='month'){const ym=$('mmn').value;if(!ym)return;const[y,mo]=ym.split('-').map(Number);f=ym+'-01';l=new Date(Date.UTC(y,mo,0)).toISOString().slice(0,10);lab=ym}
+ else if(pt==='year'){const y=+$('myr').value;if(!y)return;f=y+'-01-01';l=y+'-12-31';lab=String(y)}
+ else{f=$('mfr').value;l=$('mto').value;if(!f||!l||l<f){$('mmm').className='msg';return $('mmm').textContent='Choose a valid From and To date.'}lab=f+' to '+l}
+ const tsel=$('mtm')?$('mtm').value:'',ids=scopeIds(tsel);$('mmm').className='msg';$('mmm').textContent='Loading…';
+ const rows=[];for(let p=0;p<60;p++){let q=sb.from('attendance').select('*').gte('work_date',f).lte('work_date',l).order('work_date').order('staff_id').order('time_in').range(p*1000,p*1000+999);if(ids)q=q.in('staff_id',ids.length?ids:['-']);
+  const{data,error}=await q;if(error){$('mmm').textContent=error.message;return}rows.push(...(data||[]));if((data||[]).length<1000)break}
+ const dL=+AS.day_limit||10,wL=+AS.week_limit||48,sc=emps.filter(e=>e.active&&(!ids||ids.includes(e.staff_id))),E={},P={},nE=(i,n)=>({id:i,name:n,days:new Set(),h:0,day:{},wk:{},pj:new Set()});sc.forEach(e=>E[e.staff_id]=nE(e.staff_id,e.name));
+ rows.forEach(r=>{const h=Number(r.hours||0),o=E[r.staff_id]||(E[r.staff_id]=nE(r.staff_id,r.name||r.staff_id));o.days.add(r.work_date);o.h+=h;o.day[r.work_date]=(o.day[r.work_date]||0)+h;const w=mon(r.work_date);o.wk[w]=(o.wk[w]||0)+h;if(r.project)o.pj.add(r.project);
+  const k=(r.project||'(no project)')+'|'+(r.code||''),p=P[k]||(P[k]={name:r.project||'(no project)',code:r.code||'',emp:new Set(),md:new Set(),h:0});p.emp.add(r.staff_id);p.md.add(r.staff_id+r.work_date);p.h+=h});
+ const r1=x=>Math.round(x*10)/10,sm=(o,f)=>r1(Object.values(o).reduce((s,h)=>s+f(h),0));
+ const eRows=Object.values(E).sort((a,b)=>a.id.localeCompare(b.id)).map(o=>[o.id,o.name,o.days.size,r1(o.h),sm(o.day,h=>Math.max(0,h-dL)),sm(o.wk,h=>Math.max(0,h-wL)),[...o.pj].join(', ')]),
+ pRows=Object.values(P).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>[p.name,p.code,p.emp.size,p.md.size,r1(p.h)]);
+ let wd=0;for(let d=f;d<=l;d=add(d,1)){const g=D(d).getUTCDay();if(g>0&&g<6&&!HOL[d])wd++}
+ MON={pt,lab,t:tsel,ym:$('mmn').value,yr:$('myr').value,fr:$('mfr').value,to:$('mto').value,eRows,pRows,wd,dL,wL,n:rows.length};$('mmm').textContent='';monDraw()}
+function monF(){const q=(($('mq')||{}).value||'').toLowerCase().trim(),hz=$('mhz')&&$('mhz').checked;
+ return{e:MON.eRows.filter(r=>(!hz||r[3]>0)&&(!q||r.join(' ').toLowerCase().includes(q))),p:MON.pRows.filter(r=>!q||r.join(' ').toLowerCase().includes(q))}}
+function monDraw(){if(!MON||!$('mres'))return;const g=$('mgb').value,e=g==='e',F=monF(),R=e?F.e:F.p,H=e?['Staff ID','Name','Days worked','Total hours','Overtime h (daily)','Over weekly limit h','Projects']:['Project','Code','Employees','Man-days','Total hours'],nc=e?[2,3,4,5]:[2,3,4];
+ const tot=H.map((_,i)=>i===0?'TOTAL':nc.includes(i)?Math.round(R.reduce((s,r)=>s+Number(r[i]),0)*10)/10:'');
+ $('mres').innerHTML=`<p class="pn">Period <b>${esc(MON.lab)}</b> · working days (Mon–Fri, holidays excluded): <b>${MON.wd}</b> · ${R.length} ${e?'employees':'projects'} shown · ${MON.n} attendance rows</p><div class="t"><table><tr>${H.map(h=>'<th>'+h+'</th>').join('')}</tr>${R.map(r=>'<tr>'+r.map(c=>'<td>'+esc(String(c))+'</td>').join('')+'</tr>').join('')}<tr style="font-weight:700">${tot.map(c=>'<td>'+esc(String(c))+'</td>').join('')}</tr></table></div>`}
+function monXls(){if(!MON)return alert('Press Show summary first.');const F=monF(),mk=(H,R,nc)=>{const n=R.length,ws=XLSX.utils.aoa_to_sheet([H,...R]),tr=n+2;ws['A'+tr]={t:'s',v:'TOTAL'};
+  nc.forEach(i=>{const L=String.fromCharCode(65+i);ws[L+tr]={t:'n',v:Math.round(R.reduce((s,r)=>s+Number(r[i]),0)*10)/10,f:'SUM('+L+'2:'+L+(n+1)+')'}});ws['!ref']='A1:'+String.fromCharCode(64+H.length)+tr;ws['!cols']=H.map((h,i)=>({wch:(i===1||i===6||h==='Project')?30:14}));return ws},wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,mk(['Staff ID','Name','Days worked','Total hours','Overtime h (daily)','Over weekly limit h','Projects'],F.e,[2,3,4,5]),'By employee');
+ XLSX.utils.book_append_sheet(wb,mk(['Project','Code','Employees','Man-days','Total hours'],F.p,[2,3,4]),'By project');
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Period',MON.lab],['Working days (Mon-Fri, excl. holidays)',MON.wd],['Daily limit (h)',MON.dL],['Weekly limit (h)',MON.wL],['Overtime','Hours above the daily limit on each day'],['Over weekly limit','Hours above the weekly limit in a week'],['Filters','Search and "hide 0 hours" settings on screen were applied']]),'Notes');XLSX.writeFile(wb,'Month_Summary_'+MON.lab.replace(/[^0-9a-zA-Z-]+/g,'_')+'.xlsx')}
+async function loadHol(){HOL={};try{const{data}=await sb.from('holidays').select('*');(data||[]).forEach(h=>HOL[h.day]=h.name)}catch(e){}}
+function holDraw(){const c=$('holc');if(!c)return;const ks=Object.keys(HOL).sort();
+ c.innerHTML=`<div class="card"><b>🎉 Public holidays / off-days</b><p class="pn">Holidays are not counted as pending days for anyone. Add one day, or a range (From – To).</p><div class="row"><div><label>From</label><input type="date" id="hf"></div><div><label>To (optional)</label><input type="date" id="ht"></div><div><label>Name</label><input id="hn" placeholder="e.g. National Day"></div></div><br><button class="p" onclick="holAdd()">Add holiday</button><p class="msg" id="hm"></p><div class="t"><table>${ks.map(d=>`<tr><td>${d}</td><td>${DN[(D(d).getUTCDay()+6)%7]}</td><td>${esc(HOL[d])}</td><td><button class="s d" onclick="holDel('${d}')">Remove</button></td></tr>`).join('')}</table></div></div>`}
+async function holAdd(){const f=$('hf').value,t=$('ht').value||f,n=$('hn').value.trim(),m=$('hm');m.className='msg';if(!f||!n)return m.textContent='Choose the date and type a name.';if(t<f)return m.textContent='"To" is before "From".';
+ const rows=[];for(let d=f;d<=t&&rows.length<31;d=add(d,1))rows.push({day:d,name:n});
+ const{error}=await sb.from('holidays').upsert(rows,{onConflict:'day'});if(error)return m.textContent=error.message+(/holidays|schema cache/.test(error.message)?' - run upgrade_holidays.sql in Supabase first.':'');
+ await loadHol();holDraw()}
+async function holDel(d){await sb.from('holidays').delete().eq('day',d);await loadHol();holDraw()}
 function empF(){const q=$('eq').value.toLowerCase().trim();let n=0,t=0;document.querySelectorAll('tr[data-k]').forEach(r=>{t++;const v=!q||r.dataset.k.includes(q);r.style.display=v?'':'none';if(v)n++});$('eqn').textContent=q?n+' of '+t+' employees shown':''}
 function vEmp(){V(`<div class="card"><b>Add / update employee</b><div class="row"><div><label>Staff ID</label><input id="e1"></div><div><label>Name</label><input id="e2"></div><div><label>Default project</label><input id="e3"></div><div><label>Code</label><input id="e4"></div><div><label>Mobile (WhatsApp)</label><input id="e5" type="tel" inputmode="tel" placeholder="e.g. 971501234567"></div></div><p class="msg" id="em"></p><button class="p" onclick="saveEmp()">Save employee</button></div>
  <div class="card"><b>📥 Import employees from Excel / CSV</b><p class="pn">Columns: Staff ID, Name, Mobile. Existing staff IDs are updated; a blank Mobile keeps the current one. (Projects are imported separately below.)</p><input type="file" id="imf" accept=".xlsx,.xls,.csv"><br><br><button class="p" onclick="impEmp()">Import</button> <button class="s" onclick="impTpl()">Download template</button><p class="msg" id="im"></p></div>
  <div class="card"><input id="eq" placeholder="🔍 Search Staff ID or Name…" oninput="empF()" style="margin-bottom:6px"><p class="pn" id="eqn"></p><div class="t"><table><tr><th>Staff ID</th><th>Name</th><th>Project</th><th>Code</th><th>Mobile</th><th>Active</th><th></th></tr>${emps.map((e,i)=>`<tr data-k="${esc((e.staff_id+' '+e.name).toLowerCase())}"><td>${esc(e.staff_id)}</td><td>${esc(e.name)}</td><td>${esc(e.project)}</td><td>${esc(e.code)}</td><td>${esc(e.mobile||'')}</td><td>${e.active?'Yes':'No'}</td><td><button class="s" onclick="fillEmp(${i})">Edit</button> <button class="s" onclick="togEmp(${i})">${e.active?'Deactivate':'Activate'}</button> <button class="s d" id="de${i}" onclick="delEmp(${i})">Delete</button></td></tr>`).join('')}</table></div></div>
  <div class="card"><b>📥 Import projects / sites from Excel / CSV</b><p class="pn">Columns: Name, Code. Existing project names are updated; a blank Code keeps the current one.</p><input type="file" id="pimf" accept=".xlsx,.xls,.csv"><br><br><button class="p" onclick="impProj()">Import projects</button> <button class="s" onclick="projTpl()">Download template</button><p class="msg" id="pim"></p></div>
  <div class="card"><b>Projects / sites</b><div class="row"><div><label>Name</label><input id="p1"></div><div><label>Code</label><input id="p2"></div></div><br><button class="p" onclick="saveProj()">Save project</button>
- <div class="t"><table>${projs.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.code)}</td><td><button class="s d" id="pp${p.id}" onclick="delProj(${p.id})">Remove</button></td></tr>`).join('')}</table></div></div>`)}
+ <div class="t"><table>${projs.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.code)}</td><td><button class="s d" id="pp${p.id}" onclick="delProj(${p.id})">Remove</button></td></tr>`).join('')}</table></div></div><div id="holc"></div>`);holDraw()}
 const reload=async()=>{const[e,j]=await Promise.all([sb.from('employees').select('*').order('staff_id'),sb.from('projects').select('*').order('name')]);emps=e.data||[];projs=j.data||[];show(tab)};
 function fillEmp(i){const e=emps[i];e1.value=e.staff_id;e2.value=e.name;e3.value=e.project||'';e4.value=e.code||'';e5.value=e.mobile||''}
 async function saveEmp(){if(!e1.value||!e2.value)return em.textContent='Staff ID and name are required.';
@@ -402,12 +480,28 @@ async function impEmp(){const f=imf.files[0];im.className='msg';if(!f)return im.
    const r={staff_id:id,name},mb=pk(m,['mobile','mobilenumber','mobileno','phone','whatsapp','contact']);
    if(mb)r.mobile=mb;out.push(r)});
   if(!out.length)return im.textContent='No valid rows found. Each row needs a Staff ID and a Name.';
-  const{error}=await sb.from('employees').upsert(out,{onConflict:'staff_id',defaultToNull:false});
-  if(error)return im.textContent=error.message+(/mobile/.test(error.message)?' — add the mobile column in Supabase first.':'');
-  await reload();alert(out.length+' employee(s) imported'+(bad.length?'\nSkipped rows (missing Staff ID or Name): '+bad.join(', '):''))}
+  return impPrev(out,bad)}
  catch(e){im.textContent='Could not read the file: '+e.message}}
 async function togEmp(i){await sb.from('employees').update({active:!emps[i].active}).eq('staff_id',emps[i].staff_id);reload()}
 function delEmp(i){const e=emps[i],b=$('de'+i);if(sure('e'+i,async()=>{const{error}=await sb.from('employees').delete().eq('staff_id',e.staff_id);if(error)return alert(error.message);reload()}))b.textContent='Sure? Click again'}
+const impBox=(id,h,w,bad,go)=>{const b=$(id);b.className='';b.innerHTML=`<b>${h}</b>`+(bad.length?`<br>Skipped rows (missing required value): ${bad.join(', ')}`:'')+(w.length?`<br>⚠️ Please check:<br>${w.slice(0,15).map(esc).join('<br>')}${w.length>15?'<br>…and '+(w.length-15)+' more':''}`:'')+`<br><br><button class="p" onclick="${go}">Confirm import</button> <button class="s" onclick="$('${id}').innerHTML=''">Cancel</button>`};
+function impPrev(out,bad){const ex=new Map(emps.map(e=>[e.staff_id.toLowerCase(),e])),seen={},dups=[],w=[],nm={};emps.forEach(e=>nm[e.name.trim().toLowerCase()]=e.staff_id);
+ out.forEach(r=>{const e=ex.get(r.staff_id.toLowerCase());if(e)r.staff_id=e.staff_id;if(seen[r.staff_id]){dups.push(r.staff_id);r.mobile=r.mobile||seen[r.staff_id].mobile}seen[r.staff_id]=r});
+ const list=Object.values(seen),up=list.filter(r=>ex.has(r.staff_id.toLowerCase())).length;
+ if(dups.length)w.push('Duplicate IDs in the file (last row used): '+[...new Set(dups)].join(', '));
+ list.forEach(r=>{const e=ex.get(r.staff_id.toLowerCase());if(!/^[A-Za-z]+-?\d+$/.test(r.staff_id))w.push(r.staff_id+': unusual staff ID format');
+  if(r.mobile){const d=r.mobile.replace(/\D/g,'');if(d.length<9||d.length>15)w.push(r.staff_id+': mobile "'+r.mobile+'" looks wrong')}
+  const o=nm[r.name.trim().toLowerCase()];if(o&&o.toLowerCase()!==r.staff_id.toLowerCase())w.push(r.name+': same name already used by '+o);
+  if(e&&e.name.trim()!==r.name.trim())w.push(r.staff_id+': name will change "'+e.name+'" → "'+r.name+'"')});
+ window._imp=list;impBox('im',(list.length-up)+' new · '+up+' updated · '+bad.length+' skipped',w,bad,'impGo()')}
+async function impGo(){const out=window._imp||[];if(!out.length)return;const{error}=await sb.from('employees').upsert(out,{onConflict:'staff_id',defaultToNull:false});
+ if(error)return $('im').textContent=error.message+(/mobile/.test(error.message)?' — add the mobile column in Supabase first.':'');window._imp=null;await reload();alert(out.length+' employee(s) imported')}
+function projPrev(out,bad){const ex=new Map(projs.map(p=>[p.name.trim().toLowerCase(),p])),w=[],m2={},cu={};
+ out.forEach(r=>{const p=ex.get(r.name.toLowerCase());if(p&&p.name!==r.name){w.push('"'+r.name+'" matches existing "'+p.name+'" - the existing name is kept');r.name=p.name}m2[r.name]=Object.assign(m2[r.name]||{},r)});
+ const list=Object.values(m2),up=list.filter(r=>ex.has(r.name.toLowerCase())).length;
+ list.forEach(r=>{if(r.code)(cu[r.code.toLowerCase()]=cu[r.code.toLowerCase()]||[]).push(r.name)});Object.keys(cu).forEach(k=>{if(cu[k].length>1)w.push('Code '+k.toUpperCase()+' is used by more than one project: '+cu[k].join(' / '))});
+ window._impP=list;impBox('pim',(list.length-up)+' new · '+up+' updated · '+bad.length+' skipped',w,bad,'projGo()')}
+async function projGo(){const out=window._impP||[];if(!out.length)return;const{error}=await sb.from('projects').upsert(out,{onConflict:'name',defaultToNull:false});if(error)return $('pim').textContent=error.message;window._impP=null;await reload();alert(out.length+' project(s) imported')}
 function projTpl(){const ws=XLSX.utils.aoa_to_sheet([['Name','Code'],['Abudhabi Airbase','SS25018M'],['Alain Diwan','SS26150']]);ws['!cols']=[{wch:36},{wch:16}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Projects');XLSX.writeFile(wb,'Projects_Template.xlsx')}
 async function impProj(){const f=$('pimf').files[0],m=$('pim');m.className='msg';if(!f)return m.textContent='Choose a file first.';
  try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
@@ -416,9 +510,7 @@ async function impProj(){const f=$('pimf').files[0],m=$('pim');m.className='msg'
   const seen={},bad=[];rows.forEach((o,i)=>{const x=nk(o),name=pk(x,['name','project','projectname','site','sitename','projectsite']),code=pk(x,['code','projectcode','sitecode','jobcode']);
    if(!name){bad.push(i+2);return}const r=seen[name]||{name};if(code)r.code=code;seen[name]=r});
   const out=Object.values(seen);if(!out.length)return m.textContent='No valid rows found. Each row needs a project Name.';
-  const{error}=await sb.from('projects').upsert(out,{onConflict:'name',defaultToNull:false});
-  if(error)return m.textContent=error.message;
-  await reload();alert(out.length+' project(s) imported'+(bad.length?'\nSkipped rows (missing Name): '+bad.join(', '):''))}
+  return projPrev(out,bad)}
  catch(e){m.textContent='Could not read the file: '+e.message}}
 async function saveProj(){if(!p1.value)return;await sb.from('projects').upsert({name:p1.value.trim(),code:p2.value},{onConflict:'name'});reload()}
 function delProj(id){const b=$('pp'+id);if(sure('p'+id,async()=>{await sb.from('projects').delete().eq('id',id);reload()}))b.textContent='Sure? Click again'}
@@ -427,10 +519,10 @@ function delProj(id){const b=$('pp'+id);if(sure('p'+id,async()=>{await sb.from('
 let UD={},UN={},PK={},PWS={};
 async function vUsr(){const[pr,sr]=await Promise.all([sb.from('profiles').select('*').order('username'),sb.from('login_secrets').select('*')]),data=pr.data;PWS={};(sr.data||[]).forEach(x=>PWS[x.user_id]=x.pw);UD={};UN={};
  (data||[]).forEach(p=>{UN[p.id]=p.username;UD[p.id]={xe:!!p.can_export,xs:[...(p.export_staff||[])],re:!!p.can_report,rs:[...(p.report_staff||[])],ts:[...(p.team_staff||[])]}});
- const acc=(p,ck,ls,t)=>`<td style="white-space:normal;min-width:150px"><label class="ck"><input type="checkbox" ${UD[p.id][ck]?'checked':''} onchange="UD['${p.id}'].${ck}=this.checked"> Allow</label><button class="s" id="b_${ls}_${p.id}" onclick="pick('${p.id}','${ls}')">Employees (${UD[p.id][ls].length})</button></td>`;
+ const acc=(p,ck,ls,t)=>`<td data-label="${ck==='xe'?'Export access':'Weekly report'}" style="white-space:normal;min-width:150px"><label class="ck"><input type="checkbox" ${UD[p.id][ck]?'checked':''} onchange="UD['${p.id}'].${ck}=this.checked"> Allow</label><button class="s" id="b_${ls}_${p.id}" onclick="pick('${p.id}','${ls}')">Employees (${UD[p.id][ls].length})</button></td>`;
  V(`<div class="card"><b>➕ Create login</b><div class="row"><div><label>Employee (type to search)</label><input id="nu_s" list="nu_l" placeholder="Search name or ID…" autocomplete="off" oninput="nuFill()"><datalist id="nu_l">${emps.map(e=>`<option value="${esc(e.staff_id)} – ${esc(e.name)}">`).join('')}</datalist></div><div><label>Username</label><input id="nu_u"></div><div><label>Password</label><input id="nu_p"></div><div><label>Role</label><select id="nu_r"><option>user</option><option>admin</option></select></div></div><p class="msg" id="nu_m"></p><button class="s" onclick="genPw()">Generate password</button> <button class="p" onclick="newUsr()">Create login</button></div>
  <div id="upick"></div>${sr.error?'<div class="card"><p class="msg">Passwords cannot be shown yet: run the SQL script in Supabase (it adds the login_secrets table), then reload.</p></div>':''}
- <div class="card"><p class="pn">Export access = the user gets an Export tab (Excel / PDF, start–end dates) for the employees you choose. Weekly report access = the user gets a read-only Weekly report tab for the employees you choose. Team leader = can enter attendance only for the team members you choose (and for themselves). Tick Allow, choose employees, then press Save on that row.</p><input id="us_q" placeholder="🔍 Search username, name or staff ID…" oninput="usF()" style="margin-bottom:6px"><p class="pn" id="us_n"></p><div class="t"><table><tr><th>Username</th><th>Name</th><th>Staff ID</th><th>Role</th><th>Team leader (enter for team)</th><th>Export access</th><th>Weekly report</th><th>Password</th><th>Status</th><th></th></tr>${(data||[]).map(p=>`<tr data-k="${esc((p.username+' '+(p.display_name||'')+' '+(p.staff_id||'')).toLowerCase())}"><td>${esc(p.username)}</td><td>${esc(p.display_name)}</td><td><input id="s_${p.id}" value="${esc(p.staff_id)}" style="width:90px"></td><td><select id="o_${p.id}" style="width:95px"><option ${p.role==='user'?'selected':''}>user</option><option ${p.role==='admin'?'selected':''}>admin</option></select></td><td style="white-space:normal;min-width:150px"><label class="ck"><input type="checkbox" id="c_${p.id}" ${p.can_proxy?'checked':''}> Allow</label><button class="s" id="b_ts_${p.id}" onclick="pick('${p.id}','ts')">Employees (${UD[p.id].ts.length})</button></td>${acc(p,'xe','xs')}${acc(p,'re','rs')}<td>${PWS[p.id]?`<code style="user-select:all;font-size:.95rem">${esc(PWS[p.id])}</code><br><button class="s wa" title="Send login on WhatsApp" onclick="shareCred('${p.id}','wa')">${WA_ICON}</button> <button class="s" onclick="shareCred('${p.id}','copy')">📋 Copy</button>`:'<span class="pn">not recorded – reset it once</span>'}</td><td>${p.blocked?'🚫 Blocked':'Active'}</td><td style="white-space:normal;min-width:280px"><input id="rp_${p.id}" placeholder="new password" style="width:120px"> <button class="s" onclick="resetPw('${p.id}')">Reset password</button> <button class="s" onclick="saveUsr('${p.id}',${p.blocked})">Save</button> <button class="s d" onclick="saveUsr('${p.id}',${!p.blocked})">${p.blocked?'Unblock':'Block'}</button> <button class="s d" id="du${p.id}" onclick="delUsr('${p.id}')">Delete</button></td></tr>`).join('')}</table></div></div>`)}
+ <div class="card"><p class="pn">Export access = the user gets an Export tab (Excel / PDF, start–end dates) for the employees you choose. Weekly report access = the user gets a read-only Weekly report tab for the employees you choose. Team leader = can enter attendance only for the team members you choose (and for themselves). Tick Allow, choose employees, then press Save on that row.</p><input id="us_q" placeholder="🔍 Search username, name or staff ID…" oninput="usF()" style="margin-bottom:6px"><p class="pn" id="us_n"></p><div class="t"><table class="cards"><tr class="hd"><th>Username</th><th>Name</th><th>Staff ID</th><th>Role</th><th>Team leader (enter for team)</th><th>Export access</th><th>Weekly report</th><th>Password</th><th>Status</th><th></th></tr>${(data||[]).map(p=>`<tr data-k="${esc((p.username+' '+(p.display_name||'')+' '+(p.staff_id||'')).toLowerCase())}"><td data-label="Username">${esc(p.username)}</td><td data-label="Name">${esc(p.display_name)}</td><td data-label="Staff ID"><input id="s_${p.id}" value="${esc(p.staff_id)}" style="width:90px"></td><td data-label="Role"><select id="o_${p.id}" style="width:95px"><option ${p.role==='user'?'selected':''}>user</option><option ${p.role==='admin'?'selected':''}>admin</option></select></td><td data-label="Team leader" style="white-space:normal;min-width:150px"><label class="ck"><input type="checkbox" id="c_${p.id}" ${p.can_proxy?'checked':''}> Allow</label><button class="s" id="b_ts_${p.id}" onclick="pick('${p.id}','ts')">Employees (${UD[p.id].ts.length})</button></td>${acc(p,'xe','xs')}${acc(p,'re','rs')}<td data-label="Password">${PWS[p.id]?`<code style="user-select:all;font-size:.95rem">${esc(PWS[p.id])}</code><br><button class="s wa" title="Send login on WhatsApp" onclick="shareCred('${p.id}','wa')">${WA_ICON}</button> <button class="s" onclick="shareCred('${p.id}','copy')">📋 Copy</button>`:'<span class="pn">not recorded – reset it once</span>'}</td><td data-label="Status">${p.blocked?'🚫 Blocked':'Active'}</td><td class="act" data-label="Actions" style="white-space:normal;min-width:280px"><input id="rp_${p.id}" placeholder="new password" style="width:120px"> <button class="s" onclick="resetPw('${p.id}')">Reset password</button> <button class="s" onclick="saveUsr('${p.id}',${p.blocked})">Save</button> <button class="s d" onclick="saveUsr('${p.id}',${!p.blocked})">${p.blocked?'Unblock':'Block'}</button> <button class="s d" id="du${p.id}" onclick="delUsr('${p.id}')">Delete</button></td></tr>`).join('')}</table></div></div>`)}
 function pick(id,k){PK={id,k};const t={xs:'Export access',rs:'Weekly report access',ts:'Team members this leader can enter attendance for'}[k],cur=UD[id][k];
  $('upick').innerHTML=`<div class="card"><b>${t} – choose employees for ${esc(UN[id])}</b><br><br><input id="pq" placeholder="Search name or ID…" oninput="pickF()"><div class="tm" id="pl">${emps.filter(e=>e.active).map(e=>`<label class="ck" data-k="${esc((e.name+' '+e.staff_id).toLowerCase())}"><input type="checkbox" data-s="${esc(e.staff_id)}" ${cur.includes(e.staff_id)?'checked':''} onchange="pickTog(this)"> ${esc(e.name)} (${esc(e.staff_id)})</label>`).join('')}</div><button class="s" onclick="pickAllU(true)">Select all</button> <button class="s" onclick="pickAllU(false)">Clear</button> <button class="p" onclick="$('upick').innerHTML=''">Done</button></div>`;
  $('upick').scrollIntoView({behavior:'smooth',block:'nearest'})}
@@ -532,7 +624,7 @@ function cmpFlags(rows){const o=[],pd={},pw={};rows.forEach(r=>{const h=Number(r
  if((mins(r.time_out.slice(0,5))-mins(r.time_in.slice(0,5)))/60>POL.brk&&!(+r.break_min))o.push([r.name,r.staff_id,r.work_date,'Shift over '+POL.brk+'h with no break recorded','Medium'])});
  Object.values(pd).forEach(x=>{if(x[3]>POL.day)o.push([x[0],x[1],x[2],'Daily hours '+x[3].toFixed(1)+' exceed '+POL.day,'High'])});
  Object.values(pw).forEach(x=>{if(x[3]>POL.week)o.push([x[0],x[1],x[2],'Weekly hours '+x[3].toFixed(1)+' exceed '+POL.week,'High'])});
- const lw={};rows.filter(lateOf).forEach(r=>{const k=r.staff_id+'|'+mon(r.work_date);if(!lw[k]){lw[k]=1;o.push([r.name,r.staff_id,'WK-'+wkOf(r.work_date),'Submitted after the Sunday 9:00 PM deadline','Low'])}});
+ const lw={};rows.filter(lateOf).forEach(r=>{const k=r.staff_id+'|'+mon(r.work_date);if(!lw[k]){lw[k]=1;o.push([r.name,r.staff_id,'WK-'+wkOf(r.work_date),'Submitted after the '+dlText()+' deadline','Low'])}});
  const rk={High:0,Medium:1,Low:2};return o.sort((a,b)=>rk[a[4]]-rk[b[4]])}
 async function vCmp(){CMP=cmpFlags(await fetchAtt(XR.f,XR.t));const col={High:'var(--bad)',Medium:'#b26a00',Low:'var(--mu)'};
  V(`${rangeBar('vCmp')}<div class="card"><b>Policy limits</b><div class="row"><div><label>Max hours per day</label><input type="number" id="pl_d" value="${POL.day}"></div><div><label>Max hours per week</label><input type="number" id="pl_w" value="${POL.week}"></div><div><label>Break required over (hours)</label><input type="number" id="pl_b" value="${POL.brk}"></div><div><button class="p" onclick="savePol()">Apply</button></div></div></div>
@@ -588,14 +680,37 @@ const QW=`<div class="card" id="qw"><b>⚡ Quick week</b> <span class="pn">Add s
 function preset(a,b,br){$('ti').value=a;$('to').value=b;$('br').value=br;saveDef()}
 function saveDef(){try{localStorage.setItem(DEFK,JSON.stringify({pr:$('pr').value,pcd:$('pcd').value,ti:$('ti').value,to:$('to').value,br:$('br').value}))}catch(e){}}
 function restoreDef(){try{const x=JSON.parse(localStorage.getItem(DEFK)||'null');if(!x)return;$('pr').value=x.pr||'';$('pcd').value=x.pcd||'';$('ti').value='07:00';$('to').value=x.to||'15:00';$('br').value=x.br||0}catch(e){}}
-function vLog1(){vLog0();const v=$('view');v.insertAdjacentHTML('afterbegin','<div class="card" id="bn"></div>');v.querySelectorAll('.card')[1].insertAdjacentHTML('afterend',QW);restoreDef();['pr','pcd','ti','to','br'].forEach(i=>$(i).addEventListener('change',saveDef));banner()}
+function vLog1(){vLog0();const v=$('view');v.insertAdjacentHTML('afterbegin','<div class="card" id="bn"></div>');v.querySelectorAll('.card')[1].insertAdjacentHTML('afterend',QW);$('qw').insertAdjacentHTML('afterend',absCard());absList();restoreDef();['pr','pcd','ti','to','br'].forEach(i=>$(i).addEventListener('change',saveDef));banner()}
 async function saved(){await saved0();banner()}
 function drawDraft(){drawDraft0();banner()}
 let QM=[];
+let LVB=[];
+const absIds=()=>teamMode()?myTeam().map(e=>e.staff_id):[me.staff_id].filter(Boolean);
+function absCard(){const tm=teamMode();return`<div class="card" id="ab"><b>🌴 Not working? Record a leave / absence</b><p class="pn">Choose the day(s) you did not work and the reason: Sick leave, Day off, Personal leave, Medical test, Visa processing, Official travelling, or add your own reason. These days will not count as pending.</p>
+ <div class="row">${tm?`<div><label>Employee</label><select id="ab_e">${myTeam().map(e=>`<option value="${esc(e.staff_id)}" ${e.staff_id===me.staff_id?'selected':''}>${esc(e.name)} (${esc(e.staff_id)})</option>`).join('')}</select></div>`:''}
+ <div><label>Reason</label><select class="rs" id="ab_r" onchange="reasonPick(this)">${reasonOpts('')}</select></div>
+ <div><label>From</label><input type="date" id="ab_s" value="${today()}" onchange="if($('ab_d').value<this.value)$('ab_d').value=this.value"></div>
+ <div><label>To</label><input type="date" id="ab_d" value="${today()}"></div>
+ <div><label>Additional reason / note</label><input id="ab_n" placeholder="optional details"></div></div>
+ <p class="msg" id="ab_m"></p><button class="p" onclick="saveAbs()">Save absence</button><div id="ab_l"></div></div>`}
+async function absList(){const el=$('ab_l');if(!el)return;const ids=absIds();if(!ids.length){el.innerHTML='<p class="pn">Your login has no staff ID yet - ask the admin to link it.</p>';return}
+ const{data,error}=await sb.from('leaves').select('*').in('staff_id',ids).gte('end_date',add(today(),-60)).order('start_date',{ascending:false});
+ if(error){el.innerHTML='<p class="pn">Leave records are not available yet - the admin needs to run upgrade_user_leave.sql in Supabase.</p>';return}
+ const L=data||[],nm=id=>(emps.find(e=>e.staff_id===id)||{}).name||id,dys=l=>Math.round((D(l.end_date)-D(l.start_date))/864e5)+1;
+ el.innerHTML=L.length?`<div class="t"><table><tr><th>Name</th><th>Reason</th><th>From</th><th>To</th><th>Days</th><th>Note</th><th></th></tr>${L.map(l=>`<tr><td>${esc(nm(l.staff_id))}</td><td>${esc(l.reason)}</td><td>${l.start_date}</td><td>${l.end_date}</td><td>${dys(l)}</td><td>${esc(l.note||'')}</td><td><button class="s d" onclick="absDel(${l.id})">Remove</button></td></tr>`).join('')}</table></div>`:'<p class="pn">No leave recorded in the last 60 days.</p>'}
+async function saveAbs(){const id=$('ab_e')?$('ab_e').value:me.staff_id,s=$('ab_s').value,d=$('ab_d').value,rs=$('ab_r').value,m=$('ab_m');m.className='msg';
+ if(!id)return m.textContent='Your login has no staff ID yet - ask the admin to link it.';
+ if(!s||!d||!rs||rs==='__new')return m.textContent='Choose the reason and set the From and To dates.';if(d<s)return m.textContent='"To" cannot be before "From".';
+ const x=await sb.from('leaves').insert({staff_id:id,start_date:s,end_date:d,reason:rs,note:$('ab_n').value.trim()}).select(),w=wrote(x);
+ if(w)return m.textContent=w+(/leaves|policy|permission|row-level/i.test(w)?' - the admin needs to run upgrade_user_leave.sql in Supabase.':'');
+ try{sb.rpc('log_event',{p_action:'ADD LEAVE',p_details:{staff:id,from:s,to:d,by:'self'}})}catch(e){}
+ m.className='msg ok';m.textContent='Saved ✔ '+rs+' ('+s+(d>s?' to '+d:'')+')';$('ab_n').value='';absList();banner()}
+async function absDel(id){if(!confirm('Remove this leave record?'))return;const x=await sb.from('leaves').delete().eq('id',id).select(),w=wrote(x);if(w)return alert(w);absList();banner()}
 async function banner(){const el=$('bn');if(!el||!$('d'))return;const ids=sel(),m=mon($('d').value||today());
  const{data}=await sb.from('attendance').select('staff_id,work_date,hours').in('staff_id',ids).gte('work_date',m).lte('work_date',add(m,6));
- const rows=data||[],tot=sumH(rows),have=new Set(rows.map(r=>r.staff_id+r.work_date)),wd=[0,1,2,3,4].map(i=>add(m,i)).filter(x=>x<=today()),
- miss=wd.filter(x=>ids.some(s=>!have.has(s+x)&&!draft.some(r=>r.staff_id===s&&r.work_date===x))),dl=dlOf(m),left=Math.ceil((dl-new Date())/864e5);QM=miss;
+ const lq=await sb.from('leaves').select('staff_id,start_date,end_date').in('staff_id',ids).gte('end_date',m).lte('start_date',add(m,6));LVB=(lq&&lq.data)||[];
+ const rows=data||[],tot=sumH(rows),have=new Set(rows.map(r=>r.staff_id+r.work_date)),wd=[0,1,2,3,4].map(i=>add(m,i)).filter(x=>x<=today()&&!HOL[x]),
+ miss=wd.filter(x=>ids.some(s=>!have.has(s+x)&&!lvOn(LVB,s,x)&&!draft.some(r=>r.staff_id===s&&r.work_date===x))),dl=dlOf(m),left=Math.ceil((dl-new Date())/864e5);QM=miss;
  el.innerHTML=`<b>WK-${wkOf(m)}</b> · ${tot.toFixed(1)} h saved · ${draft.length} pending · ${miss.length?`<span style="color:var(--bad)">⚠️ missing: ${miss.map(x=>DN[(D(x).getUTCDay()+6)%7]).join(', ')}</span> <button class="s" onclick="qwMissing()">⚡ Fill missing days</button>`:'<span class="ok">✅ all working days covered</span>'} · ${new Date()<dl?'due '+dlText()+' ('+(left>0?left+' day'+(left>1?'s':''):'today')+' left)':'deadline passed'}<div class="bg"><div class="bf" style="width:${wd.length?(wd.length-miss.length)/wd.length*100:0}%"></div></div>`}
 function qwMissing(){const m=mon($('d').value);document.querySelectorAll('.qd').forEach(c=>c.checked=QM.includes(add(m,+c.value)));quickWeek()}
 async function quickWeek(){const ids=sel(),qm=$('qm');qm.className='msg';if(!ids.length)return qm.textContent='Select the employee first.';
@@ -647,7 +762,7 @@ function applyQ(){const v=$('view'),q=GQ.toLowerCase();if(!v)return;v.querySelec
 new MutationObserver(()=>{const v=$('view');if(LT!==tab){LT=tab;GQ=''}if(false)v.insertAdjacentHTML('afterbegin',`<div class="card" id="gsb" style="padding:8px"><input id="gs" placeholder="🔍 Search employee name or staff ID…" value="${esc(GQ)}" oninput="GQ=this.value;applyQ()"></div>`);applyQ();fabSync()}).observe($('view'),{childList:true,subtree:true});
 /* boot: tabs by profile */
 function extBoot(t){const b=$('hb');if(b)b.classList.remove('hide');loadSettings(true);const eng=!!me.is_engineer;
- if(eng)t.splice(1,0,['team','👥 My team']);if(eng&&!isAdmin()&&!t.some(x=>x[0]==='exp'))t.push(['exp','⬇️ Export']);t.unshift(['home','🏠 Home']);if(isAdmin())t.push(['set','⚙️ Settings']);
+ if(eng)t.splice(1,0,['team','👥 My team']);if(eng&&!isAdmin()&&!t.some(x=>x[0]==='exp'))t.push(['exp','⬇️ Export']);t.unshift(['home','🏠 Home']);if(isAdmin()||eng||me.can_proxy)t.push(['rmd','📣 Reminders']);if(isAdmin()||eng||me.can_proxy||me.can_report||me.can_export)t.push(['mon','📅 Month summary']);if(isAdmin())t.push(['set','⚙️ Settings']);
  if((isAdmin()||eng)&&!window._h){window._h=1;tab='home'}if(!localStorage.getItem('att_tip'))setTimeout(help,1800)}
 /* engineer: choose my team */
 let TPK={all:[],sel:new Set()};
@@ -683,6 +798,7 @@ async function wa2(id){const e=emps.find(x=>x.staff_id===id);let n=waNum(e.mobil
 async function vSet(){await loadSettings(true);const{data}=await sb.from('profiles').select('id,username,display_name,role,is_engineer,team_name,day_limit,week_limit').order('username');
  V(`<div class="card"><b>🗓️ Attendance deadline</b><div class="row"><div><label>Deadline day</label><select id="sd">${DAYN.map((n,i)=>`<option value="${i}" ${+AS.deadline_day===i?'selected':''}>${n}</option>`).join('')}</select></div><div><label>Time</label><input type="time" id="stt" value="${esc(AS.deadline_time)}"></div></div><p class="pn">Entries submitted after this are marked Late and reminders show it. Applies to the whole week (Mon–Sun).</p>
  <b>📅 Default week number</b><div class="row"><div><label>Week (empty = automatic)</label><input type="number" id="swd" min="1" max="53" value="${esc(AS.week_default)}"></div></div><p class="pn">Fills the Week field on Log attendance for everyone. Users can still edit it manually.</p><b>⏱️ Default hour limits</b><div class="row"><div><label>Max hours per day</label><input type="number" id="sdl" value="${esc(AS.day_limit||10)}"></div><div><label>Max hours per week</label><input type="number" id="swl" value="${esc(AS.week_limit||48)}"></div></div><p class="pn">Used to flag overtime. An engineer row below can override these for that team.</p><button class="p" onclick="saveSet()">💾 Save settings</button> <span class="msg" id="sm"></span></div>
+ <div class="card"><b>💾 Backup</b><p class="pn">Downloads a copy of all your data (attendance, employees, logins list, projects, leaves, approvals, holidays, settings and the audit log). Keep the file somewhere safe and take one every week or month. Restoring from it is a manual job - send the file to whoever maintains the app.</p><label class="ck"><input type="checkbox" id="bk_pw"> Also include saved passwords (login_secrets) - keep the file private</label><br><br><button class="p" onclick="bkRun('xlsx')">⬇️ Excel backup</button> <button class="s" onclick="bkRun('json')">⬇️ JSON backup</button><p class="msg" id="bk_m"></p></div>
  <div class="card"><b>👷 Engineer profiles</b><p class="pn">Switch on Engineer for a login: they choose their own team, see its attendance on Home and send WhatsApp reminders. Admin only enrols users and creates logins.</p><div class="t"><table><tr><th>User</th><th>Engineer</th><th>Team name</th><th>Max h/day</th><th>Max h/week</th><th></th></tr>${(data||[]).filter(p=>p.role!=='admin').map(p=>`<tr><td>${esc(p.display_name||p.username)}<br><span class="mu">${esc(p.username)}</span></td><td><input type="checkbox" id="en_${p.id}" ${p.is_engineer?'checked':''} style="width:auto"></td><td><input id="tn_${p.id}" value="${esc(p.team_name||'')}" placeholder="e.g. Team A" style="min-width:140px"></td><td><input type="number" id="dl_${p.id}" value="${p.day_limit||''}" placeholder="default" style="width:84px"></td><td><input type="number" id="wl_${p.id}" value="${p.week_limit||''}" placeholder="default" style="width:84px"></td><td><button class="s" onclick="saveEng('${p.id}')">Save</button></td></tr>`).join('')}</table></div></div>
  <div class="card"><b>⚡ Make several engineers at once</b> <span class="mu">· ${(data||[]).filter(p=>p.is_engineer).length} engineer(s) now</span><p class="pn">Tick the users who should get an Engineer profile (for example your 10 engineers) and press the button. Each one then opens <b>My team</b> and picks their own people. No attendance logs are touched.</p><input id="bq" placeholder="🔍 Search…" oninput="bqf()"><div class="tm" id="bl" style="max-height:260px">${(data||[]).filter(p=>p.role!=='admin').map(p=>`<label class="ck" data-k="${esc(((p.display_name||'')+' '+p.username).toLowerCase())}"><input type="checkbox" class="bk" value="${p.id}" onchange="bcn()"> ${esc(p.display_name||p.username)} <span class="mu">(${esc(p.username)})</span>${p.is_engineer?' <span class="ok">✔ engineer</span>':''}</label>`).join('')}</div><span class="pn" id="bcnt">0 selected</span><br><br><button class="p" onclick="bulkEng(true)">👷 Make selected Engineers</button> <button class="s" onclick="bulkEng(false)">Remove Engineer from selected</button> <span class="msg" id="bm"></span></div>`)}
 function bqf(){const q=$('bq').value.toLowerCase();document.querySelectorAll('#bl label').forEach(l=>l.style.display=l.dataset.k.includes(q)?'':'none')}
@@ -690,6 +806,21 @@ function bcn(){$('bcnt').textContent=document.querySelectorAll('.bk:checked').le
 async function bulkEng(on){const ids=[...document.querySelectorAll('.bk:checked')].map(i=>i.value);if(!ids.length){$('bm').textContent='Tick at least one user first.';return}
  const x=await sb.from('profiles').update({is_engineer:on}).in('id',ids).select();if(x.error){$('bm').textContent=x.error.message+' (run upgrade_teams.sql first)';return}
  sb.rpc('log_event',{p_action:'ENGINEER PROFILE',p_details:{bulk:ids.length,engineer:on}});toast((on?'Engineer profile ON for ':'Engineer profile OFF for ')+ids.length+' user(s)');vSet()}
+const BK=[['attendance','work_date,staff_id,time_in'],['employees','staff_id'],['profiles','id'],['projects','name'],['leaves','id'],['approvals','staff_id,week_start'],['absences','staff_id,week_start'],['reasons','name'],['reminders','staff_id,week_start'],['week_skip','staff_id,week_start'],['app_settings','key'],['holidays','day'],['audit_logs','at']];
+async function bkTable(t,ord){const go=async o=>{const out=[];for(let p=0;p<300;p++){let q=sb.from(t).select('*');if(o)o.split(',').forEach(c=>{q=q.order(c)});const{data,error}=await q.range(p*1000,p*1000+999);if(error)return{rows:out,err:error.message};out.push(...(data||[]));if((data||[]).length<1000)break}return{rows:out}};
+ let r=await go(ord);if(r.err&&ord){const r2=await go('');if(!r2.err)r2.note='no stable order - if exactly 1000 rows, some may be missing';return r2}return r}
+async function bkRun(fmt){const m=$('bk_m');m.className='msg';if(fmt==='xlsx'&&typeof XLSX==='undefined')return m.textContent='The Excel library did not load - check the internet connection, or use the JSON backup.';
+ const list=BK.concat($('bk_pw').checked?[['login_secrets','id']]:[]),data={},info=[['Table','Rows','Problem / note']];
+ for(const[t,o]of list){m.textContent='Reading '+t+'…';const r=await bkTable(t,o);data[t]=r.rows;info.push([t,r.rows.length,r.err||r.note||''])}
+ const stamp=new Date().toISOString().slice(0,16).replace(/[-:T]/g,m=>m==='T'?'_':'');let blob,name;
+ if(fmt==='json'){blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),tables:data},null,1)],{type:'application/json'});name='Attendance_Backup_'+stamp+'.json'}
+ else{const flat=v=>Array.isArray(v)?v.join(';'):(v&&typeof v==='object'?JSON.stringify(v):v),wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Backup taken',new Date().toISOString()],[],...info]),'Backup info');
+  Object.keys(data).forEach(t=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data[t].map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,flat(v)])))),t.slice(0,31)));
+  XLSX.writeFile(wb,'Attendance_Backup_'+stamp+'.xlsx');name='Attendance_Backup_'+stamp+'.xlsx'}
+ if(fmt==='json'){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+ const bad=info.slice(1).filter(x=>x[2]&&!/stable order/.test(x[2]));m.className='msg'+(bad.length?'':' ok');m.textContent='Saved '+name+' · '+info.slice(1).reduce((s,x)=>s+x[1],0)+' rows in '+(info.length-1)+' tables'+(bad.length?'. Could not read: '+bad.map(x=>x[0]+' ('+x[2]+')').join('; '):' ✔');
+ try{sb.rpc('log_event',{p_action:'BACKUP DOWNLOADED',p_details:{format:fmt}})}catch(e){}}
 async function saveSet(){const rows=[{key:'deadline_day',value:$('sd').value},{key:'deadline_time',value:$('stt').value||'21:00'},{key:'week_default',value:$('swd').value.trim()},{key:'day_limit',value:$('sdl').value||'10'},{key:'week_limit',value:$('swl').value||'48'}],x=await sb.from('app_settings').upsert(rows,{onConflict:'key'}).select();
  if(x.error){$('sm').className='msg';return $('sm').textContent=x.error.message+' (run upgrade_teams.sql first)'}rows.forEach(r=>AS[r.key]=r.value);sb.rpc('log_event',{p_action:'SETTINGS',p_details:AS});$('sm').className='msg ok';$('sm').textContent='Saved.'}
 async function saveEng(id){const x=await sb.from('profiles').update({is_engineer:$('en_'+id).checked,team_name:$('tn_'+id).value.trim()||null,day_limit:+$('dl_'+id).value||null,week_limit:+$('wl_'+id).value||null}).eq('id',id).select();if(x.error)return alert(x.error.message+'\n(run upgrade_teams.sql first)');sb.rpc('log_event',{p_action:'ENGINEER PROFILE',p_details:{id}});alert('Saved.')}
@@ -750,4 +881,5 @@ async function vTeam(){await vTeam0();const c=$('tpm');if(!c)return;const{data}=
 function cvAdd(){const t=window._cv[+$('cvs').value];(t.team_staff||[]).forEach(s=>TPK.sel.add(s));tpDraw();alert('Added '+(t.team_staff||[]).length+' member(s). Press Save my team.')}
 
 sb.auth.getSession().then(({data})=>{if(data.session)boot(false)});
+if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script></body></html>
