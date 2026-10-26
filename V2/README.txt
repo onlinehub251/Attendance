@@ -1,4 +1,4 @@
-Time Attendance V2.0 · Created by Engg Khalid
+Time Attendance · Version V2 · Created by Engg: Khalid
 
 Mobile-ready V2 attendance dashboard published at https://onlinehub251.github.io/Attendance/V2/. The existing root page remains in place; V2 shares the same Supabase attendance database and sign-in.
 
@@ -7,7 +7,7 @@ The V2 folder contains the complete deployable site: index.html, manifest.webman
 Mobile numbers: the app reads and saves numbers in the existing employees.mobile field. Records without a saved mobile number remain blank; add or update numbers in More → Employees or import an employee CSV/XLSX with Staff ID, Name, and Mobile columns. No real employee phone numbers are embedded in this repository folder.
 
 V2 features:
-- Colorful Time Attendance V2.0 branding with “Created by Engg Khalid” on the dashboard.
+- Colorful Time Attendance · Version V2 branding with a highlighted “Created by Engg: Khalid” credit.
 - Team status removed from the first dashboard screen; aligned leave table with absence edit/save controls.
 - Dashboard messaging for engineers and other active users.
 - Team, person, project, project-code, and date filters in Insights and attendance exports. Team exports include a Team Summary worksheet.
