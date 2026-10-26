@@ -1,11 +1,11 @@
 {
-  "name": "Time Attendance Version V2",
-  "short_name": "Attendance V2",
+  "name": "Time Attendance V2.0 · Created by Engg Khalid",
+  "short_name": "Attendance V2.0",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f7f5fa",
-  "theme_color": "#f7f5fa",
+  "background_color": "#6b39d3",
+  "theme_color": "#6b39d3",
   "icons": [
     {
       "src": "icon-192.png",
